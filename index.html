@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人记账本 - 智能财务管理</title>
+    
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>个人记账本</h1>
+            <p id="current-month">2023年10月</p>
+        </header>
+
+        <div class="card">
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div>总支出</div>
+                    <div id="total-expense" class="summary-val">¥0.00</div>
+                </div>
+                <div class="summary-item">
+                    <div>本月笔数</div>
+                    <div id="total-count" class="summary-val">0</div>
+                </div>
+            </div>
+            <div class="chart-container" id="chart"></div>
+        </div>
+
+        <div class="card">
+            <form id="expense-form">
+                <div class="form-group">
+                    <input type="text" id="desc" placeholder="支出名称 (例如: 午餐)" required>
+                    <input type="number" id="amount" placeholder="金额 (¥)" required>
+                    <select id="category">
+                        <option value="餐饮">餐饮</option>
+                        <option value="交通">交通</option>
+                        <option value="购物">购物</option>
+                        <option value="娱乐">娱乐</option>
+                    </select>
+                    <button type="submit">添加记录</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card" id="history">
+            <h3>近期明细</h3>
+            <div id="list"></div>
+        </div>
+    </div>
+
+    <script>
+        let expenses = JSON.parse(localStorage.getItem('expenses')) || [
+            { id: 1, desc: '午餐', amount: 35, category: '餐饮' },
+            { id: 2, desc: '打车', amount: 52, category: '交通' }
+        ];
+
+        const form = document.getElementById('expense-form');
+        const list = document.getElementById('list');
+        const chart = document.getElementById('chart');
+
+        function updateUI() {
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+            list.innerHTML = '';
+            let total = 0;
+            const cats = { '餐饮': 0, '交通': 0, '购物': 0, '娱乐': 0 };
+
+            expenses.forEach((ex, index) => {
+                total += ex.amount;
+                cats[ex.category] += ex.amount;
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                div.innerHTML = `
+                    <div><strong>${ex.desc}</strong><br><small>${ex.category}</small></div>
+                    <div>¥${ex.amount.toFixed(2)} <button class="delete-btn" onclick="remove(${index})">删除</button></div>
+                `;
+                list.appendChild(div);
+            });
+
+            document.getElementById('total-expense').innerText = `¥${total.toFixed(2)}`;
+            document.getElementById('total-count').innerText = expenses.length;
+
+            chart.innerHTML = '';
+            const max = Math.max(...Object.values(cats), 1);
+            for (const [key, val] of Object.entries(cats)) {
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.style.height = `${(val / max) * 100}%`;
+                bar.title = `${key}: ¥${val}`;
+                chart.appendChild(bar);
+            }
+        }
+
+        form.onsubmit = (e) => {
+            e.preventDefault();
+            expenses.push({
+                id: Date.now(),
+                desc: document.getElementById('desc').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                category: document.getElementById('category').value
+            });
+            form.reset();
+            updateUI();
+        };
+
+        window.remove = (index) => {
+            expenses.splice(index, 1);
+            updateUI();
+        };
+
+        updateUI();
+        document.getElementById('current-month').innerText = new Date().toLocaleDateString('zh-CN', {year: 'numeric', month: 'long'});
+    </script>
+</body>
+</html>
